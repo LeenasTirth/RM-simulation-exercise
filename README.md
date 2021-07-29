@@ -87,13 +87,13 @@ cv::Mat GetShowMat(double now);
 
 要寻找待击打叶片，就要先区分出待击打叶片和不需要击打的叶片。
 
-<img src="C:\Users\交大得E门生\AppData\Roaming\Typora\typora-user-images\image-20210729201725743.png" alt="image-20210729201725743" style="zoom:50%;" />
+<img src="E:\小菜单\机器学习\RoboMaster\CircleTracking\src\image\rawimage.png" alt="image-20210729201725743" style="zoom: 50%;" />
 
 下图中待击打叶片周围没有额外的灯条包围，但是如果直接调用**findContours和minAreaRect**找到的矩形框并不能很好的区分出待击打叶片和不需要匹配的叶片。
 
 观察到图像上有如图所示的三个区域（蓝字标出）：
 
-<img src="C:\Users\交大得E门生\AppData\Roaming\Typora\typora-user-images\image-20210729202306000.png" alt="image-20210729202306000" style="zoom:50%;" />
+<img src="E:\小菜单\机器学习\RoboMaster\CircleTracking\src\image\rawimage2.png" alt="image-20210729202306000" style="zoom:50%;" />
 
 这三个区域都各自独立，且不与外界的背景色相连接，所以可以想到的思路就是将背景颜色也变为红色，与风车颜色相融合，所以此时这三个区域就能被孤立出来。所以可以调用opencv的**floodFill**函数，在最左上角那个点处将整个背景图染成红色。
 
@@ -101,7 +101,7 @@ cv::Mat GetShowMat(double now);
 
 但是又可以发现，虽然**2**区域和**3**区域互相隔离，但是二者之间的却只隔了一条缝隙，所以这个时候我们可以对整幅图像进行一次形态学的**膨胀**操作，设置卷积核，调用**morphologyEx**函数，选择**cv::MORPH_DILATE**膨胀，膨胀可以将二值化的白色部分扩张，从而连接缝隙。如下所示：
 
-<img src="C:\Users\交大得E门生\AppData\Roaming\Typora\typora-user-images\image-20210729203419181.png" alt="image-20210729203419181" style="zoom:50%;" />
+<img src="E:\小菜单\机器学习\RoboMaster\CircleTracking\src\image\mask.png" alt="image-20210729203419181" style="zoom:50%;" />
 
 这时我们再调用**findContours和minAreaRect**，再通过筛选面积或长宽比等策略，就能找到待打击叶片了，然后通过矩形框的中心就能找到待打击点。
 
@@ -135,7 +135,7 @@ cv::Mat GetShowMat(double now);
 
 灰色的线是根据这几个基函数的系数各自服从的概率分布随机取的一个值画出来的，红线是根据这几个系数服从的概率分布的均值画出来的。这就是采用了贝叶斯学派的观点。
 
-<img src="C:\Users\交大得E门生\AppData\Roaming\Typora\typora-user-images\image-20210728200931202.png" alt="image-20210728200931202" style="zoom: 67%;" />
+<img src="E:\小菜单\机器学习\RoboMaster\CircleTracking\src\image\bayes.png" alt="image-20210728200931202" style="zoom: 67%;" />
 
 #### 该方案的问题
 
@@ -164,17 +164,17 @@ cv::Mat GetShowMat(double now);
 
 **第一张**图是我没有加入高斯噪声时，采用很小的时间间隔，对角速度的测量采样：（忽略前面那两个点，那两个点因为程序设计的一点问题，是不准确的）
 
-<img src="C:\Users\交大得E门生\AppData\Roaming\Typora\typora-user-images\image-20210729163822944.png" alt="image-20210729163822944" style="zoom: 50%;" />
+<img src="E:\小菜单\机器学习\RoboMaster\CircleTracking\src\image\scatter1.png" alt="image-20210729163822944" style="zoom: 50%;" />
 
 **第二张**图是我在采用很短的时间间隔，但是加入了高斯噪声时，对角速度的测量采样：
 
-<img src="C:\Users\交大得E门生\AppData\Roaming\Typora\typora-user-images\image-20210729164020441.png" alt="image-20210729164020441" style="zoom:50%;" />
+<img src="E:\小菜单\机器学习\RoboMaster\CircleTracking\src\image\scatter2.png" alt="image-20210729164020441" style="zoom:50%;" />
 
 可见第二张图上方有很多离群点，而正常测量的数据因为坐标轴绘制尺度的原因被挤压成了一条直线。
 
 **第三张**图是我依旧加入高斯噪声，但是采用了比较长的时间间隔对角速度的测量采样：
 
-<img src="C:\Users\交大得E门生\AppData\Roaming\Typora\typora-user-images\image-20210729164236798.png" alt="image-20210729164236798" style="zoom:50%;" />
+<img src="E:\小菜单\机器学习\RoboMaster\CircleTracking\src\image\scatter3.png" alt="image-20210729164236798" style="zoom:50%;" />
 
 可见此时至少是基本有三角函数的分布的形态的。
 
@@ -268,7 +268,7 @@ ML(const Eigen::ArrayXXd & time_, const Eigen::ArrayXXd & measured_theta_ , cons
 
 以下是我对待打击点的预测情况：（蓝色的是预测点，预测点覆盖了待打击点）
 
-<img src="C:\Users\交大得E门生\AppData\Roaming\Typora\typora-user-images\image-20210729172217861.png" alt="image-20210729172217861" style="zoom: 67%;" />
+<img src="E:\小菜单\机器学习\RoboMaster\CircleTracking\src\image\result.png" alt="image-20210729172217861" style="zoom: 67%;" />
 
 
 
