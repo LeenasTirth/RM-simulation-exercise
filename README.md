@@ -107,27 +107,27 @@ cv::Mat GetShowMat(double now);
 
 ### 优化问题
 
-已知风车的角速度满足方程$v=0.785*sin(1.884t+φ)+1.305$的形式，则可以通过积分求出某一时刻的角度应该满足$θ_t=θ_0+∫_0^tvdt$的形式。所以要追踪并预测待打击点的运动和运动位置，就需要拟合$θ_0$和$φ$这两个未知量。这里可以采用简单的梯度下降算法进行求解。
+已知风车的角速度满足方程![](https://www.zhihu.com/equation?tex=v%3D0.785%2Asin%281.884t%2B%CF%86%29%2B1.305)的形式，则可以通过积分求出某一时刻的角度应该满足![](https://www.zhihu.com/equation?tex=%CE%B8_t%3D%CE%B8_0%2B%E2%88%AB_0%5Etvdt)的形式。所以要追踪并预测待打击点的运动和运动位置，就需要拟合![](https://www.zhihu.com/equation?tex=%CE%B8_0)和![](https://www.zhihu.com/equation?tex=%CF%86)这两个未知量。这里可以采用简单的梯度下降算法进行求解。
 
-**值得注意**的是这个地方$θ_0$也是需要进行不断估计的。可能会有人认为在拟合出比较好的角速度后只需要利用$∫_0^tvdt$计算出来的$\hat{θ}$和这一时刻的测量值$θ_{observation}$做一个差就能得到$θ_0$，就能一劳永逸。但是这是错误的，因为θ是个积累量，在积累过程中可能会有噪声，噪声不断积累可能导致和实际有误差。
+**值得注意**的是这个地方![](https://www.zhihu.com/equation?tex=%CE%B8_0)也是需要进行不断估计的。可能会有人认为在拟合出比较好的角速度后只需要利用![](https://www.zhihu.com/equation?tex=%E2%88%AB_0%5Etvdt)计算出来的![](https://www.zhihu.com/equation?tex=%5Chat%7B%CE%B8%7D)和这一时刻的测量值![](https://www.zhihu.com/equation?tex=%CE%B8_%7Bobservation%7D)做一个差就能得到![](https://www.zhihu.com/equation?tex=%CE%B8_0)，就能一劳永逸。但是这是错误的，因为θ是个积累量，在积累过程中可能会有噪声，噪声不断积累可能导致和实际有误差。
 
 ### 第一种尝试
 
 #### 基于观测角的拟合
 
-在第一次尝试时我用积分公式将某一时刻$θ_t$的表达式写出：$θ_t=-\frac a wcos(wt+φ)+bt+θ_0$，打算用旋转角的位移公式对观测到的角度进行拟合，来求出这两个未知量。
+在第一次尝试时我用积分公式将某一时刻![](https://www.zhihu.com/equation?tex=%CE%B8_t)的表达式写出：![](https://www.zhihu.com/equation?tex=%CE%B8_t%3D-%5Cfrac%20a%20wcos%28wt%2B%CF%86%29%2Bbt%2B%CE%B8_0)，打算用旋转角的位移公式对观测到的角度进行拟合，来求出这两个未知量。
 
 #### python模拟
 
-在进行第一次尝试时，我准备先用python写一遍优化问题，因为python更简单方便，如果实现成功了我只需要将它换成相应的c++代码即可。于是我根据公式$θ_{observation}=-\frac a wcos(wt+φ)+bt+θ_0+noise$写了一个模拟观察到的角度的函数,其中**noise**是设定的一个高斯白噪声，这里的φ和$θ_0$都是自己设定的。
+在进行第一次尝试时，我准备先用python写一遍优化问题，因为python更简单方便，如果实现成功了我只需要将它换成相应的c++代码即可。于是我根据公式![](https://www.zhihu.com/equation?tex=%CE%B8_%7Bobservation%7D%3D-%5Cfrac%20a%20wcos%28wt%2B%CF%86%29%2Bbt%2B%CE%B8_0%2Bnoise)写了一个模拟观察到的角度的函数,其中**noise**是设定的一个高斯白噪声，这里的φ和![](https://www.zhihu.com/equation?tex=%CE%B8_0)都是自己设定的。
 
-然后利用**平方和损失函数**$L=\frac 1n∑_t(θ_t-θ_{observation})^2$列出对φ和$θ_0$的偏导数：$\frac {\partial L}{\partial φ}=\frac 2n∑_t(θ_t-θ_{observation})*\frac {\mathrm{d}θ_t} {\mathrm{d}φ}$和$\frac {\partial L}{\partial θ_0}=\frac 2n∑_t(θ_t-θ_{observation})$。然后通过梯度下降进行迭代。
+然后利用**平方和损失函数**![](https://www.zhihu.com/equation?tex=L%3D%5Cfrac%201n%E2%88%91_t%28%CE%B8_t-%CE%B8_%7Bobservation%7D%29%5E2)列出对φ和![](https://www.zhihu.com/equation?tex=%CE%B8_0)的偏导数：![](https://www.zhihu.com/equation?tex=%5Cfrac%20%7B%5Cpartial%20L%7D%7B%5Cpartial%20%CF%86%7D%3D%5Cfrac%202n%E2%88%91_t%28%CE%B8_t-%CE%B8_%7Bobservation%7D%29%2A%5Cfrac%20%7B%5Cmathrm%7Bd%7D%CE%B8_t%7D%20%7B%5Cmathrm%7Bd%7D%CF%86%7D)和![](https://www.zhihu.com/equation?tex=%5Cfrac%20%7B%5Cpartial%20L%7D%7B%5Cpartial%20%CE%B8_0%7D%3D%5Cfrac%202n%E2%88%91_t%28%CE%B8_t-%CE%B8_%7Bobservation%7D%29)。然后通过梯度下降进行迭代。
 
 因为样本角度是随着时间进行一个个生成的，所以每一次优化的时候所持有的样本数量是不同的，所以这里我还只是先用了一个粗糙的策略：每次优化对所有样本点同时进行拟合，即**batch**。
 
 使用这种简单粗糙的方法，在该模拟中可以很好的对参数进行拟合。
 
-此后我还另外写了一个采用贝叶斯线性估计的方法，也就是将$θ_t=-\frac a wcos(wt+φ)+bt+θ_0$拆开为$-\frac a wcos(φ)cos(wt)+\frac awsin(φ)sin(wt)+bt+θ_0$，将$-\frac a wcos(wt)、\frac awsin(wt)、t、1$视为四个基函数，对它们各自的系数进行拟合（其实可以预先减去bt这个函数，因为b是已知数）。拟合效果如下，随着样本点逐渐加入，参数值逐渐收敛。
+此后我还另外写了一个采用贝叶斯线性估计的方法，也就是将![](https://www.zhihu.com/equation?tex=%CE%B8_t%3D-%5Cfrac%20a%20wcos%28wt%2B%CF%86%29%2Bbt%2B%CE%B8_0)拆开为![](https://www.zhihu.com/equation?tex=-%5Cfrac%20a%20wcos%28%CF%86%29cos%28wt%29%2B%5Cfrac%20awsin%28%CF%86%29sin%28wt%29%2Bbt%2B%CE%B8_0)，将![](https://www.zhihu.com/equation?tex=-%5Cfrac%20a%20wcos%28wt%29%E3%80%81%5Cfrac%20awsin%28wt%29%E3%80%81t%E3%80%811)视为四个基函数，对它们各自的系数进行拟合（其实可以预先减去bt这个函数，因为b是已知数）。拟合效果如下，随着样本点逐渐加入，参数值逐渐收敛。
 
 灰色的线是根据这几个基函数的系数各自服从的概率分布随机取的一个值画出来的，红线是根据这几个系数服从的概率分布的均值画出来的。这就是采用了贝叶斯学派的观点。
 
@@ -137,8 +137,8 @@ cv::Mat GetShowMat(double now);
 
 我在python上实现了模拟之后，打算将其复现到c++上面去，才发现了这个方法有一些严重的问题。这些问题并不是python代码和c++代码本身的不兼容，而是因为在模拟过程中我没有考虑到这些问题，导致出错。
 
-* 第一个问题：在拟合问题中我们通过一个函数生成一个$θ_{observation}$，这个值它是一个任意角，所以我们在拟合过程中把它当做了一个连续的递增函数来进行拟合，对于一个连续的函数来说，是很好拟合的，但是在实际问题中，我们测量到的角度观测值$θ_{observation}$是无法获知它的任意角的！相反，我们只知道它的**[0,2π)**范围内的角度。所以我们不能用连续函数$θ_t=-\frac a wcos(wt+φ)+bt+θ_0$来对参数进行拟合。
-* 第二个问题：在连续函数$θ_t=-\frac a wcos(wt+φ)+bt+θ_0$中，存在一个**bt**的直流量，如果这个角度是一个任意角，那么这个值就会随程序运行时间不断增加，直到维护这个值的变量数据溢出，会造成不该有的错误。
+* 第一个问题：在拟合问题中我们通过一个函数生成一个![](https://www.zhihu.com/equation?tex=%CE%B8_%7Bobservation%7D)，这个值它是一个任意角，所以我们在拟合过程中把它当做了一个连续的递增函数来进行拟合，对于一个连续的函数来说，是很好拟合的，但是在实际问题中，我们测量到的角度观测值![](https://www.zhihu.com/equation?tex=%CE%B8_%7Bobservation%7D)是无法获知它的任意角的！相反，我们只知道它的**[0,2π)**范围内的角度。所以我们不能用连续函数![](https://www.zhihu.com/equation?tex=%CE%B8_t%3D-%5Cfrac%20a%20wcos%28wt%2B%CF%86%29%2Bbt%2B%CE%B8_0)来对参数进行拟合。
+* 第二个问题：在连续函数![](https://www.zhihu.com/equation?tex=%CE%B8_t%3D-%5Cfrac%20a%20wcos%28wt%2B%CF%86%29%2Bbt%2B%CE%B8_0)中，存在一个**bt**的直流量，如果这个角度是一个任意角，那么这个值就会随程序运行时间不断增加，直到维护这个值的变量数据溢出，会造成不该有的错误。
 
 因此，基于角度测量值进行拟合的方法在实际应用中是不合理的。
 
@@ -146,13 +146,13 @@ cv::Mat GetShowMat(double now);
 
 #### 基于角速度的拟合
 
-第二种拟合方案就是采用基于角速度的拟合方式，这个时候我们就能避开任意角。因为我们已经知道了角速度的函数形式，因此只要我们能够通过测量获取风车转动的角速度，那么就可以对角速度列损失函数方程：$L=\frac 1n∑_t(v_t-v_{observation})^2$。对于$θ_0$的估计无须拟合，后面会讲另一种估计方法。
+第二种拟合方案就是采用基于角速度的拟合方式，这个时候我们就能避开任意角。因为我们已经知道了角速度的函数形式，因此只要我们能够通过测量获取风车转动的角速度，那么就可以对角速度列损失函数方程：![](https://www.zhihu.com/equation?tex=L%3D%5Cfrac%201n%E2%88%91_t%28v_t-v_%7Bobservation%7D%29%5E2)。对于![](https://www.zhihu.com/equation?tex=%CE%B8_0)的估计无须拟合，后面会讲另一种估计方法。
 
 #### 对角速度的采样
 
 对角速度的采样即计算出每一帧待击打点的角度，通过两帧的测量值做差再除以时间间隔就能近似估计这一时刻的角速度。
 
-但是进行角速度测量的时候可能会由于时间间隔的长短导致产生不同的误差。因为在实际测量中，风车转动肯定是会受到噪声的，假设是一个高斯白噪声加在角度位移上，那么当我们取一个很短的时间间隔来求该时刻角速度时，我们本意是采用小时间间隔以逼近导数，但是因为有一个噪声常数的加入，我们以一个很小的时间步去除一个没那么小的噪声偏移量时，就会得到一个很大的角速度误差，这个角速度甚至会大的离谱，已经不符合$θ_t=-\frac a wcos(wt+φ)+bt+θ_0$的导数的分布了，这种样本就叫做**outlier**，即**离群点**；加入我们采用的是一个叫长的时间间隔，虽然此时噪声偏移量的导致的误差会没有那么显著，但是此时的差商以及不再那么逼近导数值了，也是没有那么准确的。
+但是进行角速度测量的时候可能会由于时间间隔的长短导致产生不同的误差。因为在实际测量中，风车转动肯定是会受到噪声的，假设是一个高斯白噪声加在角度位移上，那么当我们取一个很短的时间间隔来求该时刻角速度时，我们本意是采用小时间间隔以逼近导数，但是因为有一个噪声常数的加入，我们以一个很小的时间步去除一个没那么小的噪声偏移量时，就会得到一个很大的角速度误差，这个角速度甚至会大的离谱，已经不符合![](https://www.zhihu.com/equation?tex=%CE%B8_t%3D-%5Cfrac%20a%20wcos%28wt%2B%CF%86%29%2Bbt%2B%CE%B8_0)的导数的分布了，这种样本就叫做**outlier**，即**离群点**；加入我们采用的是一个叫长的时间间隔，虽然此时噪声偏移量的导致的误差会没有那么显著，但是此时的差商以及不再那么逼近导数值了，也是没有那么准确的。
 
 所以对采样时间间隔长短的选取也是有讲究的。
 
@@ -180,7 +180,9 @@ cv::Mat GetShowMat(double now);
 
 上面提到了当取短时间间隔时会有很多离群点，这些点如果直接放在平方和损失函数中进行拟合时会造成较大误差，甚至无法拟合成功。此时就可以采用**Huber损失函数**：
 
-​																$$ L=\left\{ \begin{aligned} \frac 12(v-v_{observation})^2 && |v-v_{observation}|≤δ  \\ δ|v-v_{observation}|-\frac 12δ^2 && |v-v_{observation}|>δ  \end{aligned} \right. $$
+​																
+![](https://www.zhihu.com/equation?tex=%20L%3D%5Cleft%5C%7B%20%5Cbegin%7Baligned%7D%20%5Cfrac%2012%28v-v_%7Bobservation%7D%29%5E2%20%26%26%20%7Cv-v_%7Bobservation%7D%7C%E2%89%A4%CE%B4%20%20%5C%5C%20%CE%B4%7Cv-v_%7Bobservation%7D%7C-%5Cfrac%2012%CE%B4%5E2%20%26%26%20%7Cv-v_%7Bobservation%7D%7C%3E%CE%B4%20%20%5Cend%7Baligned%7D%20%5Cright.%20)
+
 
 采用这个函数进行梯度下降时就能比较好的处理离群点。
 
@@ -204,11 +206,11 @@ cv::Mat GetShowMat(double now);
 
 所以这个时候为了正确计算出某一时刻的角速度，我们可以认为在某一个短时间间隔之间，角度的旋转不会有很大的改变，所以当我们通过对两帧的角度进行差分的时候如果差分的绝对值过大，这个时候就需要进行特殊处理。
 
-我的特殊处理方式是：认为相邻两帧样本的角度变化绝对值不会超过$180^o$。假如这个绝对值超过了$180^o$，那我就通过如下公式进行校正：
+我的特殊处理方式是：认为相邻两帧样本的角度变化绝对值不会超过![](https://www.zhihu.com/equation?tex=180%5Eo)。假如这个绝对值超过了![](https://www.zhihu.com/equation?tex=180%5Eo)，那我就通过如下公式进行校正：
 
-​														 	$△θ=-(2π-|θ_t-θ_{t-1}|)*(θ_t-θ_{t-1})/|θ_t-θ_{t-1}|$			
+​														 	![](https://www.zhihu.com/equation?tex=%E2%96%B3%CE%B8%3D-%282%CF%80-%7C%CE%B8_t-%CE%B8_%7Bt-1%7D%7C%29%2A%28%CE%B8_t-%CE%B8_%7Bt-1%7D%29/%7C%CE%B8_t-%CE%B8_%7Bt-1%7D%7C)			
 
-​												  			$v_t = \frac {△θ}{△t}$
+​												  			![](https://www.zhihu.com/equation?tex=v_t%20%3D%20%5Cfrac%20%7B%E2%96%B3%CE%B8%7D%7B%E2%96%B3t%7D)
 
 #### 参数估计
 
@@ -216,9 +218,9 @@ cv::Mat GetShowMat(double now);
 
 虽然我们知道了风车角速度的函数形式，但是每次我们开始观测的时间不同，那我们观测到的这个初相φ也是不同的。也就是说程序开始的时间不同，风车转动的角速度的φ值不同。原因是:
 
-​									$v=0.785*sin(1.884(t+t_0)+φ)+1.305=0.785*sin(1.884t+φ+1.884t_0)+1.305$
+​									![](https://www.zhihu.com/equation?tex=v%3D0.785%2Asin%281.884%28t%2Bt_0%29%2B%CF%86%29%2B1.305%3D0.785%2Asin%281.884t%2B%CF%86%2B1.884t_0%29%2B1.305)
 
-我们要拟合的φ其实是$φ+wt_0$。
+我们要拟合的φ其实是![](https://www.zhihu.com/equation?tex=%CF%86%2Bwt_0)。
 
 于是在我的**process**方法中的最后调用了私有方法:
 
@@ -234,31 +236,35 @@ ML(const Eigen::ArrayXXd & time_, const Eigen::ArrayXXd & measured_theta_ , cons
 
 在循环中利用**Huber损失函数**对每个样本求相应的对φ的梯度：
 
-​														$$\frac {\partial L}{\partial φ}_i=\left\{ \begin{aligned} (v-v_{observation})*\frac {dv}{dφ} && |v-v_{observation}|≤δ  \\ δ*\frac {dv}{dφ} && v-v_{observation}>δ \\-δ*\frac {dv}{dφ} && v-v_{observation}<-δ  \end{aligned} \right. $$
+​														
+![](https://www.zhihu.com/equation?tex=%5Cfrac%20%7B%5Cpartial%20L%7D%7B%5Cpartial%20%CF%86%7D_i%3D%5Cleft%5C%7B%20%5Cbegin%7Baligned%7D%20%28v-v_%7Bobservation%7D%29%2A%5Cfrac%20%7Bdv%7D%7Bd%CF%86%7D%20%26%26%20%7Cv-v_%7Bobservation%7D%7C%E2%89%A4%CE%B4%20%20%5C%5C%20%CE%B4%2A%5Cfrac%20%7Bdv%7D%7Bd%CF%86%7D%20%26%26%20v-v_%7Bobservation%7D%3E%CE%B4%20%5C%5C-%CE%B4%2A%5Cfrac%20%7Bdv%7D%7Bd%CF%86%7D%20%26%26%20v-v_%7Bobservation%7D%3C-%CE%B4%20%20%5Cend%7Baligned%7D%20%5Cright.%20)
 
-然后对所有$\frac {\partial L}{\partial φ}_i$求和再取平均数,用于梯度下降：$φ=φ-lr*\overline{\frac {\partial L}{\partial φ}}$。**lr**就是学习率。
 
-如果能选择合适的超参数**δ**和**lr**，并且角速度的采样数据基本正常的话，那么就能比较快的正确拟合出**φ**的估计值$\hat{φ}$。此时我们的预测点的速度变化就能和待打击点基本一致，二者之间的角度差就基本固定变化不大。
+然后对所有![](https://www.zhihu.com/equation?tex=%5Cfrac%20%7B%5Cpartial%20L%7D%7B%5Cpartial%20%CF%86%7D_i)求和再取平均数,用于梯度下降：![](https://www.zhihu.com/equation?tex=%CF%86%3D%CF%86-lr%2A%5Coverline%7B%5Cfrac%20%7B%5Cpartial%20L%7D%7B%5Cpartial%20%CF%86%7D%7D)。**lr**就是学习率。
 
-进行完φ的拟合后（指的是收敛后，因为拟合过程在不断进行），一般来说两点之间还是会有一个角度差，毕竟我们还没有拟合$θ_0$。而二者之间的角度差还是可能存在一定的微小变化，这是因为一方面角度变化方面带有一定的高斯噪声，另一方面因为拟合出来的$\hat{φ}$并非真实值，所以可能导致预测点的角度和待击打点的真实角度之间一直会存在一个服从三角函数分布的误差，但其实这个误差应该说是几乎可以忽略的，因为只要成功使$\hat{φ}$收敛到真实值附近，那么这个误差将会是很小的。
+如果能选择合适的超参数**δ**和**lr**，并且角速度的采样数据基本正常的话，那么就能比较快的正确拟合出**φ**的估计值![](https://www.zhihu.com/equation?tex=%5Chat%7B%CF%86%7D)。此时我们的预测点的速度变化就能和待打击点基本一致，二者之间的角度差就基本固定变化不大。
 
-##### 初始角度$θ_0$的估计
+进行完φ的拟合后（指的是收敛后，因为拟合过程在不断进行），一般来说两点之间还是会有一个角度差，毕竟我们还没有拟合![](https://www.zhihu.com/equation?tex=%CE%B8_0)。而二者之间的角度差还是可能存在一定的微小变化，这是因为一方面角度变化方面带有一定的高斯噪声，另一方面因为拟合出来的![](https://www.zhihu.com/equation?tex=%5Chat%7B%CF%86%7D)并非真实值，所以可能导致预测点的角度和待击打点的真实角度之间一直会存在一个服从三角函数分布的误差，但其实这个误差应该说是几乎可以忽略的，因为只要成功使![](https://www.zhihu.com/equation?tex=%5Chat%7B%CF%86%7D)收敛到真实值附近，那么这个误差将会是很小的。
 
-在估计完φ以后，预测点和待击打点之间可能还会有一个基本固定的角度，这个角度就是我们要估计的$θ_0$。
+##### 初始角度![](https://www.zhihu.com/equation?tex=%CE%B8_0)的估计
 
-现在我们得到了一个拟合的函数$\check{θ}_t=-\frac a wcos(wt+\hat{φ})+bt$。一个简单的想法就是直接用我们计算出来的$\hat{φ}$代入函数，然后把时间也代入，再和对应时间的$θ_{observation}$做差就可以了。但是值得注意的是，上面我提到过$\check{θ}_t=-\frac a wcos(wt+\hat{φ})+bt$计算出来的只是一个**任意角**。所以得先将其化为**[0,2π)**之间（这里都是弧度制）：
+在估计完φ以后，预测点和待击打点之间可能还会有一个基本固定的角度，这个角度就是我们要估计的![](https://www.zhihu.com/equation?tex=%CE%B8_0)。
 
-​																							$$\check{θ}_t=(\frac {\check{θ}_t}{2π}-\lfloor\frac {\check{θ}_t}{2π}\rfloor)*2π$$
+现在我们得到了一个拟合的函数![](https://www.zhihu.com/equation?tex=%5Ccheck%7B%CE%B8%7D_t%3D-%5Cfrac%20a%20wcos%28wt%2B%5Chat%7B%CF%86%7D%29%2Bbt)。一个简单的想法就是直接用我们计算出来的![](https://www.zhihu.com/equation?tex=%5Chat%7B%CF%86%7D)代入函数，然后把时间也代入，再和对应时间的![](https://www.zhihu.com/equation?tex=%CE%B8_%7Bobservation%7D)做差就可以了。但是值得注意的是，上面我提到过![](https://www.zhihu.com/equation?tex=%5Ccheck%7B%CE%B8%7D_t%3D-%5Cfrac%20a%20wcos%28wt%2B%5Chat%7B%CF%86%7D%29%2Bbt)计算出来的只是一个**任意角**。所以得先将其化为**[0,2π)**之间（这里都是弧度制）：
 
-这样转换完之后我们还不能直接拿它和$θ_{observation}$做差，因为但凡涉及到**[0,2π)**之间的角度差值，就得考虑0和2π的边界问题，这里都得特殊处理，正如我们上面求角速度时一样。
+​																							
+![](https://www.zhihu.com/equation?tex=%5Ccheck%7B%CE%B8%7D_t%3D%28%5Cfrac%20%7B%5Ccheck%7B%CE%B8%7D_t%7D%7B2%CF%80%7D-%5Clfloor%5Cfrac%20%7B%5Ccheck%7B%CE%B8%7D_t%7D%7B2%CF%80%7D%5Crfloor%29%2A2%CF%80)
 
-既然知道$θ_0$的幅度变化在**[0,2π)**之间，所以我将其设为在**(-π,π]**之间取值。为正数时表示快一个角度相位，为负值时表示慢一个角度相位。然后再求$△θ_t=θ_{observation}-\check{θ}_t$,再判断$△θ_t$是否在**(-π,π]**内，如果是大于π，那就可以自减2π；如果小于-π，就可以自加2π。然后就能得到正确的$△θ_t$，再更新$\hat{θ}_0^t=\check{θ}_t+△θ_t$。得到此时刻对$θ_0$的估计值。
 
-理论上我们可以通过上述方法计算出每一个时刻对$θ_0$的估计值，那我们是不是要对它们全部做一个平均？其实没有必要。我采用的策略是使用**指数平滑**的方法，仅对采用最新时刻的$θ_{observation}$来更新$\hat{θ}_0$。即采用：
+这样转换完之后我们还不能直接拿它和![](https://www.zhihu.com/equation?tex=%CE%B8_%7Bobservation%7D)做差，因为但凡涉及到**[0,2π)**之间的角度差值，就得考虑0和2π的边界问题，这里都得特殊处理，正如我们上面求角速度时一样。
 
-​																							$\hat{θ}_0=a\hat{θ}_0+(1-a)\hat{θ}_0^t$
+既然知道![](https://www.zhihu.com/equation?tex=%CE%B8_0)的幅度变化在**[0,2π)**之间，所以我将其设为在**(-π,π]**之间取值。为正数时表示快一个角度相位，为负值时表示慢一个角度相位。然后再求![](https://www.zhihu.com/equation?tex=%E2%96%B3%CE%B8_t%3D%CE%B8_%7Bobservation%7D-%5Ccheck%7B%CE%B8%7D_t),再判断![](https://www.zhihu.com/equation?tex=%E2%96%B3%CE%B8_t)是否在**(-π,π]**内，如果是大于π，那就可以自减2π；如果小于-π，就可以自加2π。然后就能得到正确的![](https://www.zhihu.com/equation?tex=%E2%96%B3%CE%B8_t)，再更新![](https://www.zhihu.com/equation?tex=%5Chat%7B%CE%B8%7D_0%5Et%3D%5Ccheck%7B%CE%B8%7D_t%2B%E2%96%B3%CE%B8_t)。得到此时刻对![](https://www.zhihu.com/equation?tex=%CE%B8_0)的估计值。
 
-这里的**a**是一个权重。这样就能减轻对$\hat{θ}_0$估计的运算负担。
+理论上我们可以通过上述方法计算出每一个时刻对![](https://www.zhihu.com/equation?tex=%CE%B8_0)的估计值，那我们是不是要对它们全部做一个平均？其实没有必要。我采用的策略是使用**指数平滑**的方法，仅对采用最新时刻的![](https://www.zhihu.com/equation?tex=%CE%B8_%7Bobservation%7D)来更新![](https://www.zhihu.com/equation?tex=%5Chat%7B%CE%B8%7D_0)。即采用：
+
+​																							![](https://www.zhihu.com/equation?tex=%5Chat%7B%CE%B8%7D_0%3Da%5Chat%7B%CE%B8%7D_0%2B%281-a%29%5Chat%7B%CE%B8%7D_0%5Et)
+
+这里的**a**是一个权重。这样就能减轻对![](https://www.zhihu.com/equation?tex=%5Chat%7B%CE%B8%7D_0)估计的运算负担。
 
 以下是我对待打击点的预测情况：（蓝色的是预测点，预测点覆盖了待打击点）
 
